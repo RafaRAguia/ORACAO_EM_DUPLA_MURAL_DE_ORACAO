@@ -132,7 +132,7 @@
   var counterEl   = document.getElementById('counter');
   var progressBar = document.querySelector('.progress-bar');
 
-  var pedidos = [], current = 0, slideTimer = null;
+  var pedidos = [], slides = [], current = 0, slideTimer = null;
 
   function shuffle(a) {
     for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}
@@ -153,48 +153,74 @@
     progressBar.style.animation='countdown '+SLIDE_DURATION+'ms linear forwards';
   }
 
-  function fitText() {
-    // Margens generosas para funcionar bem em 1080p e 4K
-    var paddingV = card.clientHeight * 0.18;
-    var paddingH = card.clientWidth  * 0.12;
-    var availH = card.clientHeight - paddingV - (authorEl.offsetHeight + 48);
-    var availW = card.clientWidth  - paddingH;
+  function splitarTexto(texto, max) {
+    if (texto.length <= max) return [texto];
+    var partes = [];
+    var restante = texto;
+    while (restante.length > max) {
+      var corte = restante.lastIndexOf(' ', max);
+      if (corte === -1) corte = max;
+      partes.push(restante.substring(0, corte).trim());
+      restante = restante.substring(corte).trim();
+    }
+    if (restante.length > 0) partes.push(restante);
+    return partes;
+  }
 
-    requestEl.style.width    = availW + 'px';
-    requestEl.style.fontSize = '1px';
-    requestEl.style.overflow = 'hidden';
+  function fitText(cardH, cardW) {
+    // Espaço real disponível para o texto
+    // Desconta: padding do card (104px top+bottom) + altura do autor + gap
+    var paddingCard = 104;
+    var gapAuthor   = 30;
+    var availH = cardH - paddingCard - authorEl.offsetHeight - gapAuthor;
+    var availW = cardW - 160;
 
-    var lo = 8, hi = 90, best = 8;
-    for (var i = 0; i < 40; i++) {
+    // Configura o elemento para medição correta
+    requestEl.style.width      = availW + 'px';
+    requestEl.style.whiteSpace = 'normal';
+    requestEl.style.overflow   = 'visible';
+    requestEl.style.fontSize   = '10px';
+
+    // Busca binária precisa
+    var lo = 10, hi = 130, best = 10;
+    for (var i = 0; i < 60; i++) {
       var mid = (lo + hi) / 2;
       requestEl.style.fontSize = mid + 'px';
-      if (requestEl.scrollHeight <= availH && requestEl.scrollWidth <= availW) {
-        best = mid; lo = mid + 0.25;
+      if (requestEl.scrollHeight <= availH) {
+        best = mid;
+        lo   = mid + 0.25;
       } else {
         hi = mid - 0.25;
       }
     }
-    // Margem de segurança de 12% para garantir que não corte
-    requestEl.style.fontSize = Math.min(best * 0.88, 85) + 'px';
+
+    // Aplica com margem de segurança de 6%
+    requestEl.style.fontSize = Math.floor(best * 0.94) + 'px';
+    requestEl.style.overflow = 'hidden';
   }
 
   function showSlide(i) {
     card.classList.remove('visible');
+
+    // Mede o card ANTES de escrever o texto
+    var cardH = card.clientHeight;
+    var cardW = card.clientWidth;
+
     setTimeout(function(){
-      var p=pedidos[i];
-      authorEl.textContent  = p.display_author||'Anônimo';
-      requestEl.textContent = p.request;
-      loadingEl.style.display='none';
-      contentEl.style.display='flex';
-      counterEl.textContent=(i+1)+' de '+pedidos.length+' pedidos';
-      fitText();
+      var p = slides[i];
+      authorEl.textContent  = p.autor + (p.continuacao ? ' (cont.)' : '');
+      requestEl.textContent = p.texto;
+      loadingEl.style.display = 'none';
+      contentEl.style.display = 'flex';
+      counterEl.textContent = (i+1) + ' de ' + slides.length + ' pedidos';
+      fitText(cardH, cardW);
       card.classList.add('visible');
       startProgress();
-    },700);
+    }, 700);
   }
 
   function nextSlide() {
-    current=(current+1)%pedidos.length;
+    current=(current+1)%slides.length;
     if(current===0){
       // Terminou todos — volta para tela 1
       clearTimeout(slideTimer);
@@ -217,7 +243,17 @@
         card.classList.add('visible');
         return;
       }
-      pedidos=shuffle(dados); current=0;
+      pedidos = shuffle(dados);
+      // Expande pedidos longos em múltiplos slides
+      slides = [];
+      for (var k = 0; k < pedidos.length; k++) {
+        var p = pedidos[k];
+        var partes = splitarTexto(p.request, 250);
+        for (var m = 0; m < partes.length; m++) {
+          slides.push({ autor: p.display_author || 'Anônimo', texto: partes[m], continuacao: m > 0 });
+        }
+      }
+      current = 0;
       showSlide(current);
       clearTimeout(slideTimer);
       slideTimer=setTimeout(nextSlide,SLIDE_DURATION);
