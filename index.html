@@ -24,26 +24,26 @@
   #tela1 .t1-logo { width:56px; height:auto; opacity:0.85; margin-bottom:8px; }
 
   #tela1 .t1-tag {
-    font-size:1rem; font-weight:600;
+    font-size:1.6rem; font-weight:600;
     letter-spacing:0.35em; text-transform:uppercase;
     color:var(--teal); opacity:0.8;
   }
 
   #tela1 .t1-titulo {
-    font-size:clamp(3.5rem,9vw,8.5rem);
+    font-size:clamp(5rem,12vw,12rem);
     font-weight:800; color:#fff;
     text-align:center; line-height:1.1;
-    max-width:88vw;
+    max-width:90vw;
   }
   #tela1 .t1-titulo span { color:var(--teal); }
 
   #tela1 .t1-barra { width:90px; height:5px; background:var(--yellow); border-radius:3px; }
 
   #tela1 .t1-sub {
-    font-size:clamp(1.4rem,3vw,2.8rem);
+    font-size:clamp(2.2rem,4.5vw,5rem);
     font-weight:300; color:rgba(255,255,255,0.75);
     text-align:center; line-height:1.4;
-    max-width:75vw;
+    max-width:80vw;
   }
   #tela1 .t1-sub strong { color:var(--yellow); font-weight:700; }
 
@@ -154,18 +154,28 @@
   }
 
   function fitText() {
-    var availH = card.clientHeight - 140 - (authorEl.offsetHeight+40);
-    var availW = card.clientWidth  - 200;
-    requestEl.style.width=availW+'px';
-    requestEl.style.fontSize='1px';
-    var lo=10,hi=100,best=10;
-    for(var i=0;i<30;i++){
-      var mid=(lo+hi)/2;
-      requestEl.style.fontSize=mid+'px';
-      if(requestEl.scrollHeight<=availH){best=mid;lo=mid+0.5;}
-      else{hi=mid-0.5;}
+    // Margens generosas para funcionar bem em 1080p e 4K
+    var paddingV = card.clientHeight * 0.18;
+    var paddingH = card.clientWidth  * 0.12;
+    var availH = card.clientHeight - paddingV - (authorEl.offsetHeight + 48);
+    var availW = card.clientWidth  - paddingH;
+
+    requestEl.style.width    = availW + 'px';
+    requestEl.style.fontSize = '1px';
+    requestEl.style.overflow = 'hidden';
+
+    var lo = 8, hi = 90, best = 8;
+    for (var i = 0; i < 40; i++) {
+      var mid = (lo + hi) / 2;
+      requestEl.style.fontSize = mid + 'px';
+      if (requestEl.scrollHeight <= availH && requestEl.scrollWidth <= availW) {
+        best = mid; lo = mid + 0.25;
+      } else {
+        hi = mid - 0.25;
+      }
     }
-    requestEl.style.fontSize=Math.min(best*0.92,90)+'px';
+    // Margem de segurança de 12% para garantir que não corte
+    requestEl.style.fontSize = Math.min(best * 0.88, 85) + 'px';
   }
 
   function showSlide(i) {
